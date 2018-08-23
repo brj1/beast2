@@ -1,20 +1,16 @@
 package beast.evolution.tree;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import beast.core.BEASTObject;
 import beast.core.Description;
 import beast.core.Input;
 import beast.core.Input.Validate;
 import beast.core.util.Log;
 import beast.evolution.alignment.TaxonSet;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 
 
 @Description("A trait set represent a collection of properties of taxons, for the use of initializing a tree. " +
@@ -25,6 +21,13 @@ import beast.evolution.alignment.TaxonSet;
         "recognizes 'date', 'date-forward' and 'date-backward' as a trait, but by creating custom Node classes " +
         "other traits can be supported as well.")
 public class TraitSet extends BEASTObject {
+
+    /**
+     * @return a string describing the type of date that this trait represents. could be null.
+     */
+    public String getDateType() {
+        return traitNameInput.get();
+    }
 
     public enum Units {
         year, month, day
@@ -42,6 +45,7 @@ public class TraitSet extends BEASTObject {
     final public static String DATE_TRAIT = "date";
     final public static String DATE_FORWARD_TRAIT = "date-forward";
     final public static String DATE_BACKWARD_TRAIT = "date-backward";
+    final public static String AGE_TRAIT = "age";
 
     /**
      * String values of taxa in order of taxons in alignment*
@@ -51,11 +55,11 @@ public class TraitSet extends BEASTObject {
     /**
      * double representation of taxa value *
      */
-    double[] values;
-    double minValue;
-    double maxValue;
-    
-    Map<String, Integer> map;
+    protected double[] values;
+    protected double minValue;
+    protected double maxValue;
+
+    protected Map<String, Integer> map;
 
     /**
      * Whether or not values are ALL numeric.
@@ -131,7 +135,7 @@ public class TraitSet extends BEASTObject {
             }
         }
 
-        if (traitNameInput.get().equals(DATE_BACKWARD_TRAIT)) {
+        if (traitNameInput.get().equals(DATE_BACKWARD_TRAIT) || traitNameInput.get().equals(AGE_TRAIT)) {
             for (int i = 0; i < labels.size(); i++) {
                 values[i] = values[i] - minValue;
             }
@@ -228,7 +232,7 @@ public class TraitSet extends BEASTObject {
     /**
      * remove start and end spaces
      */
-    String normalize(String str) {
+    protected String normalize(String str) {
         if (str.charAt(0) == ' ') {
             str = str.substring(1);
         }
@@ -250,7 +254,7 @@ public class TraitSet extends BEASTObject {
             return maxValue - height;
         }
 
-        if (traitNameInput.get().equals(DATE_BACKWARD_TRAIT)) {
+        if (traitNameInput.get().equals(DATE_BACKWARD_TRAIT) || traitNameInput.get().equals(AGE_TRAIT)) {
             return minValue + height;
         }
         return height;
@@ -263,7 +267,7 @@ public class TraitSet extends BEASTObject {
     public boolean isDateTrait() {
         return traitNameInput.get().equals(DATE_TRAIT)
                 || traitNameInput.get().equals(DATE_FORWARD_TRAIT)
-                || traitNameInput.get().equals(DATE_BACKWARD_TRAIT);
+                || traitNameInput.get().equals(DATE_BACKWARD_TRAIT) || traitNameInput.get().equals(AGE_TRAIT);
     }
 
     /**
