@@ -86,12 +86,12 @@ public class ParameterInputEditor extends BEASTObjectInputEditor {
             parameter.valuesInput.setValue(valueString, parameter);
             parameter.initAndValidate();
             int newDim = parameter.getDimension();
-            if (oldDim != newDim) {
+/*            if (oldDim != newDim) {
             	parameter.setDimension(oldDim);
                 parameter.valuesInput.setValue(oldValue, parameter);
                 parameter.initAndValidate();
                 throw new IllegalArgumentException("Entry caused change in dimension");
-            }
+            }*/
             validateInput();
         } catch (Exception ex) {
             m_validateLabel.setVisible(true);
