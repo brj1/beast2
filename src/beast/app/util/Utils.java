@@ -1,29 +1,6 @@
 package beast.app.util;
 
 
-import java.awt.Component;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.Toolkit;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.swing.ImageIcon;
-import javax.swing.JFileChooser;
-import javax.swing.LookAndFeel;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
 import beast.app.beauti.BeautiPanel;
 import beast.app.beauti.BeautiPanelConfig;
 import beast.core.util.Log;
@@ -33,6 +10,17 @@ import beast.evolution.likelihood.BeagleTreeLikelihood;
 import beast.evolution.sitemodel.SiteModel;
 import beast.evolution.substitutionmodel.JukesCantor;
 import beast.util.TreeParser;
+import jam.framework.Application;
+
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @author Andrew Rambaut
@@ -346,8 +334,12 @@ public class Utils {
 	    }
 	
 	}
-	
-	
+
+    /**
+     * Used to detect whether CUDA with BEAGLE is installed on OS X in {@link Utils6#testCudaStatusOnMac()},
+     * which is used by {@link beast.app.beastapp.BeastLauncher#main(String[])}.
+     * @see <a href="https://github.com/CompEvol/beast2/issues/500">issues 500</a>.
+     */
     public static void main(String[] args) {
 		try {
 			Sequence a = new Sequence("A", "A");
@@ -376,7 +368,7 @@ public class Utils {
 			e.printStackTrace();
 		}
 
-    	
+
     	System.out.println("Success");
     	// if we got this far, exit with status 0
 		System.exit(0);
@@ -397,7 +389,8 @@ public class Utils {
 	    Log.debug.println("Font is now at size " + fontSize);
 	}
 
-	
+	//++++++ dependency on Utils6
+
 	/**
 	 * Get value from beauti.properties file
 	 */
@@ -416,4 +409,22 @@ public class Utils {
     public static void logToSplashScreen(String msg) {
     	Utils6.logToSplashScreen(msg);
     }
+
+
+    //++++++ Mac OS only
+
+    public static void macOSXRegistration(Application application) {
+        if (isMac()) {
+            NewOSXAdapter newOSXAdapter = new NewOSXAdapter(application);
+            try {
+                newOSXAdapter.registerMacOSXApplication(application);
+            } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
+                System.err.println("Exception while loading the OSXAdapter:");
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+
 }

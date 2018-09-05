@@ -1,31 +1,86 @@
 package beast.app.util;
 
-import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.Graphics;
-import java.awt.GraphicsEnvironment;
-import java.awt.Image;
-import java.awt.MediaTracker;
-import java.awt.Toolkit;
-import java.awt.Window;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.util.Properties;
-
-import javax.swing.ImageIcon;
-import javax.swing.JComponent;
-import javax.swing.JOptionPane;
-
 import beast.app.BEASTVersion;
 import beast.core.util.Log;
 
-/** Utils that work with Java6 **/
+import javax.swing.*;
+import java.awt.*;
+import java.io.*;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.Properties;
+
+/**
+ * The utils that work with Java6.
+ *
+ * Utils6 cannot depend on Utils class, where Utils6 is Java 6 compatible,
+ * but Utils works on Java 8 and later.
+ **/
 public class Utils6 {
+
+    //++++++ Java version
+    // Detect or compare the Java major number from a Java version string, such as "1.7.0_25" or "10.0.1".
+    public static final int JAVA_1_8 = 8;
+    public static final int JAVA_9 = 9;
+
+    /**
+     * Get the current Java version from "java.version".
+     * @return The Java version.
+     */
+    public static String getCurrentJavaVersion() {
+        return System.getProperty("java.version");
+    }
+
+    /**
+     * Compare the current Java major version to a given version.
+     * @param javaVersion an integer of major version.
+     * @return True, if current >= javaVersion.
+     */
+    public static boolean isMajorAtLeast(int javaVersion) {
+        int currentVersion = getMajorJavaVersion();
+        if (currentVersion < 2 || javaVersion < 2)
+            throw new IllegalArgumentException("Java major version " + currentVersion + " or " +
+                    javaVersion + " is not recognised !");
+        return currentVersion >= javaVersion;
+    }
+
+    /**
+     * Compare the current Java major version to a given version.
+     * @param javaVersion an integer of major version.
+     * @return True, if current < javaVersion.
+     */
+    public static boolean isMajorLower(int javaVersion) {
+        int currentVersion = getMajorJavaVersion();
+        if (currentVersion < 2 || javaVersion < 2)
+            throw new IllegalArgumentException("Java major version " + currentVersion + " or " +
+                    javaVersion + " is not recognised !");
+        return currentVersion < javaVersion;
+    }
+
+    /**
+     * parse a Java version string to an integer of major version like 7, 8, 9, 10, ...
+     */
+    public static int getMajorJavaVersion() {
+        String javaVersion = getCurrentJavaVersion();
+        // javaVersion should be something like "1.7.0_25"
+        String[] version = javaVersion.split("\\.");
+        if (version.length > 2) {
+            int majorVersion = Integer.parseInt(version[0]);
+            if (majorVersion == 1) {
+                majorVersion = Integer.parseInt(version[1]);
+            }
+            return majorVersion;
+        }
+        try {
+            int majorVersion = Integer.parseInt(javaVersion);
+            return majorVersion;
+        } catch (NumberFormatException e) {
+            // ignore
+        }
+        return -1;
+    }
+
+    //++++++ Graphics
 
     public static class Canvas extends JComponent {
 		private static final long serialVersionUID = 1L;
@@ -117,7 +172,7 @@ public class Utils6 {
 	public static boolean testCudaStatusOnMac() {
 		String cudaStatusOnMac = "<html>It appears you have CUDA installed, but your computer hardware does not support it.<br>"
 				+ "You need to remove CUDA before BEAST/BEAUti can start.<br>"
-				+ "To remove CUDA, delete the following folders by typing in a terminal:<br>"
+				+ "To remove CUDA, delete the following folders (if they exist) by typing in a terminal:<br>"
 				+ "rm -r /Library/Frameworks/CUDA.framework<br>"
 				+ "rm -r /Developer/NVIDIA<br>"
 				+ "rm -r /usr/local/cuda<br>"
@@ -137,17 +192,34 @@ public class Utils6 {
 			try {
 			if (new File("/Library/Frameworks/CUDA.framework").exists() ||
 					new File("/Developer/NVIDIA").exists() ||
-					new File("/usr/local/cuda").exists()) {
-				      String java = System.getenv("java.home");
-				      if (java == null) {
-				    	  java ="/usr/bin/java";
-				      } else {
-				    	  java += "/bin/java";
-				      }
+					new File("/usr/local/cuda").exists() || true) {
+				
+					String java = null;
+					// first check we can find java of the pacakged JRE
+	            	Utils6 clu = new Utils6();
+	            	String launcherJar = clu.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();            	
+	            	String jreDir = URLDecoder.decode(new File(launcherJar).getParent(), "UTF-8") + "/../jre1.8.0_161/";	            	            	
+	            	if (new File(jreDir).exists()) {
+		                java = jreDir + "bin/java";
+	            	}
+	            	if (java == null) {
+					      java = System.getenv("java.home");
+					      if (java == null) {
+					          if (System.getenv("JAVA_HOME") != null) {
+					              java = System.getenv("JAVA_HOME") + File.separatorChar
+					                      + "bin" + File.separatorChar + "java";
+					          } else {
+					          	  java = "java";
+					          }					    	  
+					      } else {
+					    	  java += "/bin/java";
+					      }
+	            	 }
 				      String beastJar = getPackageUserDir();
 				      beastJar += "/" + "BEAST" + "/" + "lib" + "/" + "beast.jar";
-				      if (!new File(beastJar).exists()) {
+				      if (!new File(beastJar).exists()) { 
 				    	  Log.debug.println("Could not find beast.jar, giving up testCudaStatusOnMac");
+					      //TODO: first time BEAST is started, BEAST will not be installed as package yet, so beastJar does not exist
 				    	  return true;
 				      }
 				      //beastJar = "\"" + beastJar + "\"";
@@ -306,24 +378,5 @@ public class Utils6 {
     		
     	}
     }
-    
-    public static int getMajorJavaVersion() {
-		String javaVersion = System.getProperty("java.version");
-		// javaVersion should be something like "1.7.0_25"
-		String[] version = javaVersion.split("\\.");
-		if (version.length > 2) {
-			int majorVersion = Integer.parseInt(version[0]);
-			if (majorVersion == 1) {
-				majorVersion = Integer.parseInt(version[1]);
-			}
-			return majorVersion;
-		}
-		try {
-			int majorVersion = Integer.parseInt(javaVersion);
-			return majorVersion;
-		} catch (NumberFormatException e) {
-			// ignore
-		}
-		return -1;
-    }
+
 }
